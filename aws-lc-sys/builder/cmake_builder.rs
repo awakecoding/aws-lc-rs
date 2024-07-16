@@ -154,6 +154,18 @@ impl CmakeBuilder {
             }
         }
 
+        // See issue: https://github.com/aws/aws-lc-rs/issues/453
+        if target_os() == "windows" {
+            // https://cmake.org/cmake/help/latest/variable/CMAKE_MSVC_RUNTIME_LIBRARY.html
+            let is_crt_static = cargo_env("CARGO_CFG_TARGET_FEATURE").contains("crt-static");
+            if is_crt_static {
+                cmake_cfg.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
+            } else {
+                cmake_cfg.define("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL");
+            }
+            cmake_cfg.static_crt(is_crt_static); // not enough, but set it anyway
+        }
+
         if (target_env() != "msvc") && test_ninja_command() {
             // Use Ninja if available
             cmake_cfg.generator("Ninja");
